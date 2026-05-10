@@ -1,41 +1,41 @@
+# package_routes.py
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from typing import List
-from ..schemas.package_tour import PackageTourCreate, PackageTourUpdate
-from ..models.package_tour import PackageTour
 
 router = APIRouter()
 
-# In-memory store for demo
-packages: List[PackageTour] = []
+class PackageTour(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    price: int
+    schedule: List[str]
+    includes: List[str] = []
+    excludes: List[str] = []
+    images: List[str] = []
+
+# Dummy data
+packages = [
+    PackageTour(
+        id=1,
+        title="Seoul City Tour",
+        description="Explore the heart of Seoul.",
+        price=120,
+        schedule=["Day 1: Gyeongbokgung", "Day 2: Myeongdong"],
+        includes=["Hotel", "Meals"],
+        excludes=["Flights"],
+        images=["/images/seoul1.jpg", "/images/seoul2.jpg"],
+    )
+]
 
 @router.get("/", response_model=List[PackageTour])
-def list_packages():
+async def list_packages():
     return packages
 
-@router.post("/", response_model=PackageTour, status_code=status.HTTP_201_CREATED)
-def create_package(pkg: PackageTourCreate):
-    new_pkg = PackageTour(id=len(packages)+1, **pkg.dict())
-    packages.append(new_pkg)
-    return new_pkg
-
-@router.get("/{pkg_id}", response_model=PackageTour)
-def get_package(pkg_id: int):
-    for p in packages:
-        if p.id == pkg_id:
-            return p
-    raise HTTPException(status_code=404, detail="Package not found")
-
-@router.put("/{pkg_id}", response_model=PackageTour)
-def update_package(pkg_id: int, upd: PackageTourUpdate):
-    for idx, p in enumerate(packages):
-        if p.id == pkg_id:
-            updated = p.copy(update=upd.dict(exclude_unset=True))
-            packages[idx] = updated
-            return updated
-    raise HTTPException(status_code=404, detail="Package not found")
-
-@router.delete("/{pkg_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_package(pkg_id: int):
-    global packages
-    packages = [p for p in packages if p.id != pkg_id]
-    return
+@router.get("/{package_id}", response_model=PackageTour)
+async def get_package(package_id: int):
+    for pkg in packages:
+        if pkg.id == package_id:
+            return pkg
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Package not found")
